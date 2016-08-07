@@ -46,7 +46,7 @@ include('connection.php');
 		<div id="nav">
 			Video<br>
 			<?php
-				$query = "SELECT * FROM keywords";
+				$query = "SELECT * FROM keywords ORDER BY ID DESC";
 				$result = mysql_query($query);	
 				
 				while ($displayInput = mysql_fetch_array($result))

@@ -1,0 +1,6 @@
+Add Log-In/account capability.
+Top 10 articles/stories from users.
+Handle DDOS or hugging to death.
+Add more subsriptions from other websites.
+
+Publish project to website.

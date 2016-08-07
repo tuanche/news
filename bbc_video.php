@@ -4,80 +4,119 @@
 
 	function fetch_word()
 	{
-		$data = file_get_contents('http://feeds.bbci.co.uk/news/rss.xml'); //get all contents from the chosen website
-		$data = simplexml_load_string($data); //load texts in a simple format
-		//echo $data; //output texts are unorganized
-		//print_r($data); //output texts are unorganized
-		$articles = array(); //initialize variable articles as an array
-
-		foreach ($data->channel->item as $item) //"item" object in variable "data" is duplicated to variable "item"
+		$query = "SELECT * FROM websites ORDER BY ID DESC";
+		$result = mysql_query($query);	
+		
+		while ($displayInput = mysql_fetch_array($result))
 		{
-			$media = $item->children('http://search.yahoo.com/mrss/');
-			$image = array();
-			
-			if ($media->thumbnail && $media->thumbnail[0]->attributes())
-			{
-				foreach ($media->thumbnail[0]->attributes() as $key => $value)
-				{
-					$image[$key] = (string)$value;
-				}
-			}
-			
-			$text = (string)$item->title;
-			$text = strtolower($text);
-			$split = preg_split("/[^\w]*([\s]+[^\w]*|$)/", $text, -1, PREG_SPLIT_NO_EMPTY);
+			$data = file_get_contents($displayInput['link']);
+			//$data = file_get_contents('http://feeds.bbci.co.uk/news/rss.xml'); //get all contents from the chosen website
+			//$data2 = file_get_contents('http://hosted.ap.org/lineups/TOPHEADS.rss'); //get all contents from the chosen website
+			//$data = $data + $data2;
+			$data = simplexml_load_string($data); //load texts in a simple format
+			//echo $data; //output texts are unorganized
+			//print_r($data); //output texts are unorganized
+			$articles = array(); //initialize variable articles as an array
+
+			$bUserInputted = false;
 
 			if (isset($_POST['searchWord']))
 			{
-				$counterLoop1 = 0;
-				$counterLoop2 = 0;
-				$testKey = $_POST['searchWord'];
-				$testKey = strtolower($testKey);
-				$split2 = preg_split("/[^\w]*([\s]+[^\w]*|$)/", $testKey, -1, PREG_SPLIT_NO_EMPTY);
+				$sFromUser = $_POST['searchWord'];
+				$sFromUser = Strtolower($sFromUser);
+				$sFromUser_split = Preg_split('/\W/', $sFromUser, 0, PREG_SPLIT_NO_EMPTY);
+				$bUserInputted = true;
+				$counterFromUser = 0;
 
-				foreach ($split2 as $count)
+				foreach ($sFromUser_split as $Count)
 				{
-					$counterLoop1++;
+					$counterFromUser = $counterFromUser + 1;
 				}
 
-				foreach ($split2 as $fromUser)
-				{
-					foreach ($split as $keyWord)
-					{
-						if ($keyWord == $fromUser)
-						{
-							$counterLoop2++;
-						}
-
-						if ($counterLoop1 <= $counterLoop2)
-						//if ($keyWord == $_POST['searchWord'])
-						{
-							$articles[] = array(
-							//point to string
-							//key				value
-							'title'			=> (string)$item->title,
-							'description'	=> (string)$item->description,
-							'link'			=> (string)$item->link,
-							'date'			=> (string)$item->pubDate,
-							'image'			=> $image,
-							);
-							break;
-						}
-					}
-				}
+				echo $counterFromUser;
 			}
 
-			else
+			foreach ($data->channel->item as $item) //"item" object in variable "data" is duplicated to variable "item"
 			{
-				$articles[] = array(
-				//point to string
-				//key				value
-				'title'			=> (string)$item->title,
-				'description'	=> (string)$item->description,
-				'link'			=> (string)$item->link,
-				'date'			=> (string)$item->pubDate,
-				'image'			=> $image,
-				);
+				$media = $item->children('http://search.yahoo.com/mrss/');
+				$image = array();
+				
+				if ($media->thumbnail && $media->thumbnail[0]->attributes())
+				{
+					foreach ($media->thumbnail[0]->attributes() as $key => $value)
+					{
+						$image[$key] = (string)$value;
+					}
+				}
+				
+				// Get title and compare it with user input
+				$sTitle = (string)$item->title;
+				$sTitle = strtolower($sTitle);
+				$sTitle_split = preg_split("/[^\w]*([\s]+[^\w]*|$)/", $sTitle, -1, PREG_SPLIT_NO_EMPTY);
+				
+				// Get description and compare it with user input.
+				$wholeWord = (string)$item->description;
+				$wholeWord = strtolower($wholeWord);
+				$wholeWord_split = preg_split("/[^\w]*([\s]+[^\w]*|$)/", $wholeWord, -1, PREG_SPLIT_NO_EMPTY);
+
+				if ($bUserInputted)
+				{
+					$counterFromTitle = 0;
+					$counterFromDescription = 0;
+
+					foreach ($sFromUser_split as $fromUser)
+					{
+						foreach ($sTitle_split as $fromTitle)
+						{
+							if ($fromTitle == $fromUser)
+							{
+								$counterFromTitle++;
+								$counterFromDescription++;
+								break;
+							}
+							else
+							{
+								foreach ($wholeWord_split as $fromDescription)
+								{
+									if ($fromDescription == $fromUser)
+									{
+										$counterFromDescription++;
+										break;
+									}
+								}
+							}
+						}
+					}
+
+					if ($counterFromUser <= $counterFromTitle || $counterFromUser <= $counterFromDescription)
+					{
+						$articles[] = array(
+						//point to string
+						//key				value
+						'title'			=> (string)$item->title,
+						'description'	=> (string)$item->description,
+						'link'			=> (string)$item->link,
+						'date'			=> (string)$item->pubDate,
+						'image'			=> $image,
+						);
+					}
+
+					//echo $counterFromUser;
+					//echo $counterFromTitle;
+					//echo $counterFromDescription++;
+				}
+				else
+				{
+					$articles[] = array(
+					//point to string
+					//key				value
+					'title'			=> (string)$item->title,
+					'description'	=> (string)$item->description,
+					'link'			=> (string)$item->link,
+					'date'			=> (string)$item->pubDate,
+					'image'			=> $image,
+					);
+				}
 			}
 		}
 		$done = 1;
@@ -85,28 +124,16 @@
 	}
 
 	if (!isset($_POST['submit']))
-	//if (!NotEmpty($_POST['searchWord']))
 	{
 		echo "Please input a key word 4";
 	}
-	else if (NotEmpty($_POST['searchWord']))
+	else
 	{
 		$done = 0;
 		$inputWord = $_POST['searchWord'];
 		mysql_query("INSERT INTO keywords (`keyword`, `ID`)
 					VALUE('$inputWord', NULL)") or die(mysql_error());
 		echo "Input is added successfully";
-	}
-	else
-	{
-		if (!NotEmpty($_POST['searchWord']))
-		{
-			header("Location: clickseenews.php");
-			die();
-			//echo "1";
-			//echo $_POST['searchWord'];
-			//echo "1";
-		}
 	}
 
 	if (!isset($_POST['submitAccount']))
@@ -125,20 +152,5 @@
 		mysql_query("INSERT INTO accounts (`ID`, `NAME`, `EMAIL`, `PASSWORD`, `CREATED_DATE`)
 					VALUE(NULL, '$userName', '$emailLocal', '$passWord', '$timezone')") or die(mysql_error());
 		echo "Account is added successfully" . $timezone;
-	}
-
-	function NotEmpty($input)
-	{
-		$sInput = $input;
-		$sInput = trim($sInput);
-
-		if ($sInput != '')
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
 	}
 ?>
