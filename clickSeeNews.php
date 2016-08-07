@@ -1,9 +1,10 @@
 <?php
 include('init.inc.php'); //the location of this file has to be in the same folder with news.php
+include('connection.php');
 ?>
 <!DOCTYPE html PUBLIC "-/W3C//DTD XHTML 1.1 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict-dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
-	<head>
+	<head style="background-color:black">
 		<meta http-equiv="Content-Type" consent="text/html; charset=utf-8" />
 		<title></title>
 		<style>
@@ -11,22 +12,26 @@ include('init.inc.php'); //the location of this file has to be in the same folde
 		{
 			line-height:30px;
 			background-color:#eeeeee;
-			height:auto;
+			height:420px;
 			width:200px;
 			float:left;
 			color:black;
 			position:fixed;
 			padding:5px;
+			overflow:auto;
+			border-style:groove;
 		}
 		#section
 		{
 			height:100%;
 			float:left;
+			background-color:#eeeeee;
 			margin-left:210px;
 			padding:10px;
+		}
 		</style>
 	</head>
-	<body>
+	<body style="background-color:#eeeeee">
 		<div>
 			<form action="<?=$_SERVER['PHP_SELF'];?>" method="post">
 				<input type="text" name="searchWord" value="<?=isset($_POST['searchWord']) ? htmlspecialchars($_POST['searchWord']) : '' ?>" /><br>
@@ -41,9 +46,16 @@ include('init.inc.php'); //the location of this file has to be in the same folde
 		<div id="nav">
 			Video<br>
 			<?php
-				if(isset($_POST['submit']))
+				$query = "SELECT * FROM keywords";
+				$result = mysql_query($query);	
+				
+				while ($displayInput = mysql_fetch_array($result))
 				{
-					echo htmlspecialchars($_POST['searchWord']);
+			?>
+					<form action="<?=$_SERVER['PHP_SELF'];?>" method="post">
+						<input type="submit" name="searchWord" value="<?= $displayInput['keyword'] ?>" />
+					</form>
+			<?php
 				}
 			?>
 		</div>
