@@ -1,7 +1,7 @@
 <?php
 /*action="<?=$_SERVER['PHP_SELF'];?>"*/
 include('init.inc.php'); //the location of this file has to be in the same folder with news.php
-include('includes/connection.php');
+include('include/connection.php');
 //ini_set('display_errors', 1);
 //ini_set('display_startup_errors', 1);
 //error_reporting(E_ALL);

@@ -1,5 +1,5 @@
 <?php
-	include 'connection.php';
+	include 'include/connection.php';
 	$done = 0;
 
 	function fetch_word()
@@ -32,8 +32,6 @@
 				{
 					$counterFromUser = $counterFromUser + 1;
 				}
-
-				echo $counterFromUser;
 			}
 
 			foreach ($data->channel->item as $item) //"item" object in variable "data" is duplicated to variable "item"
@@ -125,9 +123,9 @@
 
 	if (!isset($_POST['submit']))
 	{
-		echo "Please input a key word 4";
+		echo "Please input a key word 4" . "<br>";
 	}
-	else
+	else if (!IsEmpty($_POST['searchWord']))
 	{
 		$done = 0;
 		$inputWord = $_POST['searchWord'];
@@ -152,5 +150,18 @@
 		mysql_query("INSERT INTO accounts (`ID`, `NAME`, `EMAIL`, `PASSWORD`, `CREATED_DATE`)
 					VALUE(NULL, '$userName', '$emailLocal', '$passWord', '$timezone')") or die(mysql_error());
 		echo "Account is added successfully" . $timezone;
+	}
+
+	function IsEmpty($input)
+	{
+		$sInputTemp = $input;
+		$sInputTemp = trim($sInputTemp);
+
+		if ($sInputTemp == '')
+		{
+			return true;
+		}
+
+		return false;
 	}
 ?>
