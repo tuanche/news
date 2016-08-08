@@ -11,7 +11,7 @@ include('include/connection.php');
 		<title></title>
 
 		<style>
-		#nav
+		#keywords
 		{
 			line-height:30px;
 			background-color:#eeeeee;
@@ -23,14 +23,20 @@ include('include/connection.php');
 			padding:5px;
 			overflow:auto;
 			border-style:groove;
+			margin-top:100px;
 		}
-		#section
+		#contents
 		{
 			height:100%;
 			float:left;
 			background-color:#eeeeee;
 			margin-left:210px;
 			padding:10px;
+		}
+		#search
+		{
+			position:fixed;
+			margin-top:60px;
 		}
 		</style>
 
@@ -39,9 +45,37 @@ include('include/connection.php');
 	<body style="background-color:#eeeeee">
 
 		<div>
+			<?php // This division is for user to log in.
+			if (isset($_COOKIE["SavedUserInfo"])
+				&& $_COOKIE["SavedUserInfo"] != "999999999")
+			{
+			?>
+				<form>
+					<label for="LoggedInUsername"> Welcome, <?php echo GetUserName($_COOKIE["SavedUserInfo"]); ?>!</label> <br>
+					<label>Have a great time. </label>
+				</form>
+				<form action="<?=$_SERVER['PHP_SELF'];?>" method="post">
+					<input type="submit" name="submitLogOut" value="Log Out">
+				</form>
+			<?php
+			}
+			else
+			{
+			?>
+				<form action="<?=$_SERVER['PHP_SELF'];?>" method="post">
+					<input type="text" name="txtUsername" placeholder="Username" value="<?=isset($_POST['txtUsername']) ? htmlspecialchars($_POST['txtUsername']) : '' ?>" /><br>
+					<input type="text" name="txtPassword" placeholder="Password" value="<?=isset($_POST['txtPassword']) ? htmlspecialchars($_POST['txtPassword']) : '' ?>" /><br>
+					<input type="submit" name="submitLogIn" value="Log In">
+				</form>
+			<?php
+			}
+			?>
+		</div>
+
+		<div id="search">
 			<?php // This division is for user to search keywords for relating news. ?>
 			<form action="<?=$_SERVER['PHP_SELF'];?>" method="post">
-				<input type="text" name="searchWord" value="<?=isset($_POST['searchWord']) ? htmlspecialchars($_POST['searchWord']) : '' ?>" /><br>
+				<input type="text" name="searchWord" /><br>
 				<input type="submit" name="submit" value="Search">
 			</form>
 		</div>
@@ -50,24 +84,61 @@ include('include/connection.php');
 			<a href="news.php"> Click to see news </a>
 		</div>
 
-		<div id="nav">
+		<div id="keywords">
 			<?php
-				// This division is for displaying news contents.
-				$query = "SELECT * FROM keywords ORDER BY ID DESC";
-				$result = mysql_query($query);	
-				
-				while ($displayInput = mysql_fetch_array($result))
+				if (!isset($_POST['submitLogIn']) && isset($_COOKIE["SavedUserInfo"]) && $_COOKIE["SavedUserInfo"] != "999999999")
 				{
+					$sUser = $_COOKIE["SavedUserInfo"];
+					$result = mysql_query("SELECT KEYWORD FROM accounts WHERE ACCOUNT_NUMBER=$sUser ORDER BY ID DESC") or die(mysql_error());
+
+					while ($displayInput = mysql_fetch_array($result))
+					{
 			?>
-					<form action="<?=$_SERVER['PHP_SELF'];?>" method="post">
-						<input type="submit" name="searchWord" value="<?= $displayInput['keyword'] ?>" />
-					</form>
+						<form action="<?=$_SERVER['PHP_SELF'];?>" method="post">
+							<input type="submit" name="searchWord" value="<?= $displayInput['KEYWORD'] ?>" />
+						</form>
 			<?php
+					}
+				}
+				else if (isset($_POST['submitLogIn']) && $_POST['txtUsername'] != '' && $_POST['txtPassword'] != '')
+				{
+					$sUsername = $_POST['txtUsername'];
+					$sPassword = $_POST['txtPassword'];
+					if (LogIn($sUsername, $sPassword) == true)
+					{
+						$sSavedUser = $_COOKIE["SavedUserInfo"];
+						$result = mysql_query("SELECT KEYWORD FROM accounts WHERE ACCOUNT_NUMBER='$sSavedUser'") or die(mysql_error());
+
+						while ($displayInput = mysql_fetch_array($result))
+						{
+			?>
+							<form action="<?=$_SERVER['PHP_SELF'];?>" method="post">
+								<input type="submit" name="searchWord" value="<?= $displayInput['KEYWORD'] ?>" />
+							</form>
+			<?php
+						}
+						header("Location: clickSeeNews.php");
+						exit();
+					}
+				}
+				else
+				{
+					// This division is for displaying news contents.
+					$query = "SELECT * FROM keywords ORDER BY ID DESC";
+					$result = mysql_query($query) or die(mysql_error());
+					while ($displayInput = mysql_fetch_array($result))
+					{
+			?>
+						<form action="<?=$_SERVER['PHP_SELF'];?>" method="post">
+							<input type="submit" name="searchWord" value="<?= $displayInput['keyword'] ?>" />
+						</form>
+			<?php
+					}
 				}
 			?>
 		</div>
 
-		<div id="section">
+		<div id="contents">
 				<?php
 				foreach (fetch_word() as $article) //this function will retrieve all texts from the chosen website and display them
 				{

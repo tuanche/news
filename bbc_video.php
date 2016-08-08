@@ -1,6 +1,5 @@
 <?php
 	include 'include/connection.php';
-	$done = 0;
 
 	function fetch_word()
 	{
@@ -117,26 +116,25 @@
 				}
 			}
 		}
-		$done = 1;
 		return $articles; //print out all objects of "articles"
 	}
 
 	if (!isset($_POST['submit']))
 	{
-		echo "Please input a key word 4" . "<br>";
+		//echo "Please input a key word 4" . "<br>";
 	}
-	else if (!IsEmpty($_POST['searchWord']))
+	else if (!IsEmpty($_POST['searchWord']) && isset($_COOKIE["SavedUserInfo"]) && $_COOKIE["SavedUserInfo"] != "999999999")
 	{
-		$done = 0;
 		$inputWord = $_POST['searchWord'];
-		mysql_query("INSERT INTO keywords (`keyword`, `ID`)
-					VALUE('$inputWord', NULL)") or die(mysql_error());
+		$sInsertUser = $_COOKIE["SavedUserInfo"];
+		mysql_query("INSERT INTO accounts (`ID`, `ACCOUNT_NUMBER`, `USERNAME`, `EMAIL`, `PASSWORD`, `CREATED_DATE`, `KEYWORD`)
+					VALUE(NULL, '$sInsertUser', '0', '0', '0', '0', '$inputWord')") or die(mysql_error());
 		echo "Input is added successfully";
 	}
 
 	if (!isset($_POST['submitAccount']))
 	{
-		echo "Please input a key word 2";
+		//echo "Please input a key word 2";
 	}
 	// if (!empty($userName) && !empty($emailLocal) && !empty($passWord))
 	else
@@ -152,6 +150,16 @@
 		echo "Account is added successfully" . $timezone;
 	}
 
+	// If log out button is clicked, do LogOut() function.
+	if (isset($_POST['submitLogOut']))
+	{
+		LogOut();
+		/*setcookie("SavedUsername", "doesnotexist", 1);
+		setcookie("SavedPassword", "doesnotexist", 1);
+		header("Location: clickSeeNews.php");
+		exit();*/
+	}
+
 	function IsEmpty($input)
 	{
 		$sInputTemp = $input;
@@ -163,5 +171,42 @@
 		}
 
 		return false;
+	}
+
+	function LogIn($Username, $Password)
+	{
+		$result = mysql_query("SELECT DISTINCT ACCOUNT_NUMBER FROM accounts WHERE USERNAME='$Username' AND PASSWORD='$Password'") or die(mysql_error());
+
+		while ($displayInput = mysql_fetch_array($result))
+		{
+			// 86400 = 1 day
+			$iExpireTime = 86400 * 30;
+			setcookie("SavedUserInfo", $displayInput['ACCOUNT_NUMBER'], time() + $iExpireTime);
+			echo "here****************************";
+			return true;
+		}
+
+		return false;
+	}
+	
+	function LogOut()
+	{
+		// 86400 = 1 day
+		$iExpireTime = 86400 * 30;
+		// Change the cookie values when user logs out.
+		setcookie("SavedUserInfo", "999999999", time() + $iExpireTime);
+		// Refresh the page so the change can be made.
+		header("Location: clickSeeNews.php"); /* Redirect browser */
+		exit();
+	}
+
+	function GetUserName($inputName)
+	{
+		$result = mysql_query("SELECT DISTINCT USERNAME FROM accounts WHERE ACCOUNT_NUMBER=$inputName") or die(mysql_error());
+
+		while ($displayInput = mysql_fetch_array($result))
+		{
+			return $displayInput['USERNAME'];
+		}
 	}
 ?>
