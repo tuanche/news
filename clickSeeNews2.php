@@ -140,7 +140,7 @@ include('include/connection.php');
 
 		<div id="contents">
 				<?php
-				foreach (fetch_word() as $article) //this function will retrieve all texts from the chosen website and display them
+				foreach (fetch_wordSearch() as $article) //this function will retrieve all texts from the chosen website and display them
 				{
 					// Edit pictures/thumbnails so that they are limited to 100 x 100 pixels.
 					?>

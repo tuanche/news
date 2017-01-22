@@ -1,20 +1,22 @@
 <?php
 	include 'include/connection.php';
 
+	$timezone = date("Y-m-d");
+
 	function fetch_word()
 	{
-		$query = "SELECT * FROM websites ORDER BY ID DESC";
-		$result = mysql_query($query);	
+		$query = "SELECT * FROM zc_websites ORDER BY NUMBER ASC";
+		$result = mysql_query($query);
+		$totalArray = array();
 		
 		while ($displayInput = mysql_fetch_array($result))
 		{
 			$data = file_get_contents($displayInput['link']);
-			//$data = file_get_contents('http://feeds.bbci.co.uk/news/rss.xml'); //get all contents from the chosen website
-			//$data2 = file_get_contents('http://hosted.ap.org/lineups/TOPHEADS.rss'); //get all contents from the chosen website
-			//$data = $data + $data2;
-			$data = simplexml_load_string($data); //load texts in a simple format
+			//$data = simplexml_load_file("http://rss.cnn.com/rss/cnn_topstories.rss"); //load texts in a simple format
+			$data = @simplexml_load_string($data); //load texts in a simple format
 			//echo $data; //output texts are unorganized
 			//print_r($data); //output texts are unorganized
+
 			$articles = array(); //initialize variable articles as an array
 
 			$bUserInputted = false;
@@ -33,16 +35,21 @@
 				}
 			}
 
-			foreach ($data->channel->item as $item) //"item" object in variable "data" is duplicated to variable "item"
+			//"item" object in variable "data" is duplicated to variable "item"
+			foreach ($data->channel->item as $item)
 			{
 				$media = $item->children('http://search.yahoo.com/mrss/');
 				$image = array();
-				
-				if ($media->thumbnail && $media->thumbnail[0]->attributes())
+
+				// If the articles are from BBC, show images
+				if ($displayInput['NUMBER'] == 1)
 				{
-					foreach ($media->thumbnail[0]->attributes() as $key => $value)
+					if ($media->thumbnail && $media->thumbnail[0]->attributes())
 					{
-						$image[$key] = (string)$value;
+						foreach ($media->thumbnail[0]->attributes() as $key => $value)
+						{
+							$image[$key] = (string)$value;
+						}
 					}
 				}
 				
@@ -56,25 +63,32 @@
 				$wholeWord = strtolower($wholeWord);
 				$wholeWord_split = preg_split("/[^\w]*([\s]+[^\w]*|$)/", $wholeWord, -1, PREG_SPLIT_NO_EMPTY);
 
+				// If user has inputted something in search box
 				if ($bUserInputted)
 				{
 					$counterFromTitle = 0;
 					$counterFromDescription = 0;
 
+					// Split user input into separate word
 					foreach ($sFromUser_split as $fromUser)
 					{
+						// Split title into separate word
 						foreach ($sTitle_split as $fromTitle)
 						{
+							// If the number of words from user matches with of title
 							if ($fromTitle == $fromUser)
 							{
 								$counterFromTitle++;
 								$counterFromDescription++;
 								break;
 							}
+							// If title doesn't match enough, search in description
 							else
 							{
+								// Split description into separate word
 								foreach ($wholeWord_split as $fromDescription)
 								{
+									// If the number of words from user matches with of description
 									if ($fromDescription == $fromUser)
 									{
 										$counterFromDescription++;
@@ -85,6 +99,7 @@
 						}
 					}
 
+					// Display only articles that are related to user input
 					if ($counterFromUser <= $counterFromTitle || $counterFromUser <= $counterFromDescription)
 					{
 						$articles[] = array(
@@ -97,11 +112,8 @@
 						'image'			=> $image,
 						);
 					}
-
-					//echo $counterFromUser;
-					//echo $counterFromTitle;
-					//echo $counterFromDescription++;
 				}
+				// Display all articles by default
 				else
 				{
 					$articles[] = array(
@@ -115,8 +127,11 @@
 					);
 				}
 			}
+			
+			$totalArray = array_merge($totalArray, $articles);
 		}
-		return $articles; //print out all objects of "articles"
+
+		return $totalArray; //print out all objects of "articles"
 	}
 
 	if (!isset($_POST['submit']))
@@ -127,8 +142,9 @@
 	{
 		$inputWord = $_POST['searchWord'];
 		$sInsertUser = $_COOKIE["SavedUserInfo"];
-		mysql_query("INSERT INTO accounts (`ID`, `ACCOUNT_NUMBER`, `USERNAME`, `EMAIL`, `PASSWORD`, `CREATED_DATE`, `KEYWORD`)
-					VALUE(NULL, '$sInsertUser', '0', '0', '0', '0', '$inputWord')") or die(mysql_error());
+
+		mysql_query("INSERT INTO zc_accounts_keywords (`ID`, `ACCOUNT_NUMBER`, `KEYWORD`)
+					VALUE(NULL, '$sInsertUser', '$inputWord')") or die(mysql_error());
 		echo "Input is added successfully";
 	}
 
@@ -139,14 +155,17 @@
 	// if (!empty($userName) && !empty($emailLocal) && !empty($passWord))
 	else
 	{
+		$i_countUsers = mysql_query("SELECT COUNT(ID) FROM zc_accounts") or die(mysql_error());
+		$i_countUsers = $i_countUsers + 1;
+
 		$userName = $_POST['username'];
 		$emailLocal = $_POST['email'];
 		$passWord = $_POST['password'];
 		date_default_timezone_set('America/Los_Angeles');
 		//$timezone = date_default_timezone_get();
-		$timezone = date("Y-m-d");
-		mysql_query("INSERT INTO accounts (`ID`, `NAME`, `EMAIL`, `PASSWORD`, `CREATED_DATE`)
-					VALUE(NULL, '$userName', '$emailLocal', '$passWord', '$timezone')") or die(mysql_error());
+		//$timezone = date("Y-m-d");
+		mysql_query("INSERT INTO zc_accounts (`ID`, `ACCOUNT_NUMBER`, `USERNAME`, `EMAIL`, `PASSWORD`, `CREATED_DATE`)
+										VALUE(NULL, '$i_countUsers', '$userName', '$emailLocal', '$passWord', '$timezone')") or die(mysql_error());
 		echo "Account is added successfully" . $timezone;
 	}
 
@@ -175,14 +194,13 @@
 
 	function LogIn($Username, $Password)
 	{
-		$result = mysql_query("SELECT DISTINCT ACCOUNT_NUMBER FROM accounts WHERE USERNAME='$Username' AND PASSWORD='$Password'") or die(mysql_error());
+		$result = mysql_query("SELECT DISTINCT ACCOUNT_NUMBER FROM zc_accounts WHERE USERNAME='$Username' AND PASSWORD='$Password'") or die(mysql_error());
 
 		while ($displayInput = mysql_fetch_array($result))
 		{
 			// 86400 = 1 day
 			$iExpireTime = 86400 * 30;
 			setcookie("SavedUserInfo", $displayInput['ACCOUNT_NUMBER'], time() + $iExpireTime);
-			echo "here****************************";
 			return true;
 		}
 
@@ -202,7 +220,7 @@
 
 	function GetUserName($inputName)
 	{
-		$result = mysql_query("SELECT DISTINCT USERNAME FROM accounts WHERE ACCOUNT_NUMBER=$inputName") or die(mysql_error());
+		$result = mysql_query("SELECT DISTINCT USERNAME FROM zc_accounts WHERE ACCOUNT_NUMBER=$inputName") or die(mysql_error());
 
 		while ($displayInput = mysql_fetch_array($result))
 		{

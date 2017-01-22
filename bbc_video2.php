@@ -3,13 +3,18 @@
 
 	$timezone = date("Y-m-d");
 
-	function fetch_word()
+	// Function that gets data from a website
+	function fetch_wordSearch()
 	{
+		// The query that gets websites from database
 		$query = "SELECT * FROM zc_websites ORDER BY NUMBER ASC";
 		$result = mysql_query($query);
+
+		// Initialization
 		$totalArray = array();
 		$my_http = 'http';
 		
+		// Loop through the websites
 		while ($displayInput = mysql_fetch_array($result))
 		{
 			if ($displayInput['NUMBER'] == 4)
@@ -17,25 +22,38 @@
 				// Read news from google search
 
 				//$data = file_get_contents($displayInput['link']); // ZC good. test
+				// Get data from the website in string
 				$data = file_get_contents($displayInput['link']);
+				// Convert html tags to string
 				$data = htmlspecialchars($data);
-				$shortData = strstr($data, 'About');
+				// Remove anything before this keyword
+				$sFirstRemoval = 'About';
+				$shortData = strstr($data, $sFirstRemoval);
+				// Keep count of news
 				$iCount = 0;
+				// For URL
 				$sValue = "KEEPTRACK";
+				// For description
 				$sValueDesc = "KEEPDESC";
+				$iNumberOfNews = 10;
 				
-				while ($iCount < 20)
+				// Only save the first 8 results
+				while ($iCount < $iNumberOfNews)
 				{
 					//$data = simplexml_load_file("http://rss.cnn.com/rss/cnn_topstories.rss"); //load texts in a simple format
 					//$data = @simplexml_load_string($data); //load texts in a simple format
 					//echo $data; //output texts are unorganized
 					//$shortData = strstr($data, 'About');
+					//print_r();
 					
-					$fullstring = $shortData;
-					$getURL = get_string_between($fullstring, $my_http, '&amp');
-					$fullURL = $my_http . $getURL;
+					// Get the URL
+					$sGetURL = get_string_between($shortData, $my_http, '&amp');
+					// Get the full format of a website URL
+					$fullURL = $my_http . $sGetURL;
+					// The first use of needle
 					$needle = $fullURL;
-					$posURL = false;
+					// Use to check whether the URL has HTML tag in it
+					$bTagInURL = false;
 					$tempURL = $fullURL;
 					$tempURL = htmlspecialchars_decode($tempURL);
 
@@ -43,9 +61,10 @@
 					if($tempURL != strip_tags($tempURL))
 					{
 						// contains HTML
-						$posURL = true;
+						$bTagInURL = true;
 					}
 
+					// Replace the used URL with a unique value
 					$sValueUnique = $sValue . (string)$iCount;
 
 					$replace = $sValueUnique;
@@ -54,36 +73,73 @@
 					// Check if the substring is in string
 					$bFindURL = strpos($shortData, $needle);
 
-					// If true, Find and replace the specified URL with the string "DUDE"
+					// If true, Find and replace the specified URL with the substring
 					if ($bFindURL != false)
 					{
 						$shortData = substr_replace($shortData, $replace, $bFindURL, strlen($needle));
 					}
 					
-					// Remove any text before the first detection of string "DUDE"
+					// Remove any text before the first detection of the URL
 					$shortData = strstr($shortData, $replace);
-
 					// Search through the text and grab the substring between "> and </a>.
-					// The title is between "> and </a> in my case.
+					// The title is between							">	and		</a>		in my case.
 					$getTitle = get_string_between($shortData, '&quot;&gt;', '&lt;/a&gt;');
 					// Turn the string back to the version with HTML tag
 					$getTitle = htmlspecialchars_decode($getTitle);
 					// Strip HTML tags from the string
 					$getTitle = strip_tags($getTitle);
-
 					// Get date of the publication
+					//											st">				<b>
 					$getDate = get_string_between($shortData, 'st&quot;&gt;', '&lt;b&gt;');
 
-					//$sValueUniqueDesc = $sValueDesc . (string)$iCount;
-					//$replace = $sValueUniqueDesc;
-					// Remove any text before the first detection of the substring
-					//$shortData = strstr($shortData, $replace);
+					// Flag for finding date
+					$bFindDate = false;
+					// Search keyword
+					$needle = $getDate;
+					// Replace the used description with a unique value
+					$sValueUniqueDesc = $sValueDesc . (string)$iCount;
+					$replace = $sValueUniqueDesc;
+					// Check if the substring is in string
+					$bFindDate = strpos($shortData, $needle);
 
-					//$getDesc = get_string_between($shortData, '&lt;/b&gt;', '&amp;nbsp');
-					$getDesc = "Okay";
+					// If true, Find and replace the specified URL with the substring
+					if ($bFindDate != false)
+					{
+						$shortData = substr_replace($shortData, $replace, $bFindDate, strlen($needle));
+					}
+
+					// Remove any text before the first detection of the substring
+					$shortData = strstr($shortData, $replace);
+
+					// Get description of the news
+					//											</b>		&nbsp
+					$getDesc = get_string_between($shortData, '&lt;/b&gt;', '&amp;nbsp');
+					// Save the saved description in case
+					$tempDesc = $getDesc;
+
+					// If the description is more than 300 characters, it is not the right description
+					if (strlen($getDesc) > 400)
+					{
+						// Keep any thing before the needle
+						//								</span>
+						$tempDesc = strstr($tempDesc, '&lt;/span&gt;', true);
+						$getDesc = $tempDesc;
+					}
+
+					// Turn the string back to the version with HTML tag
+					$getDesc = htmlspecialchars_decode($getDesc);
+					// Strip HTML tags from the string
+					$getDesc = strip_tags($getDesc);
+
+					// If the string has HTML tag, </>, keep only the part before it.
+					$needle = '&lt;/&gt;';
+					if (strpos($getDesc, $needle))
+					{
+						$getDesc = strstr($getDesc, $needle, true);
+					}
 				
 					// If the URL is less than 150 characters and checked to be valid, put it inside the array for outputting
-					if (strlen($getURL) < 150 && $posURL == false)
+					if (strlen($sGetURL) < 150 && $bTagInURL == false)
 					{
 						// initialize the array
 						$articles = array(); //initialize variable articles as an array
@@ -98,6 +154,7 @@
 								'date'			=> (string)$getDate,
 								);
 						
+						// Put the article inside the array
 						$totalArray = array_merge($totalArray, $articles);
 					}
 
@@ -108,101 +165,6 @@
 		}
 
 		return $totalArray; //print out all objects of "articles"
-		//return $articles; //print out all objects of "articles"
-	}
-
-	if (!isset($_POST['submit']))
-	{
-		//echo "Please input a key word 4" . "<br>";
-	}
-	else if (!IsEmpty($_POST['searchWord']) && isset($_COOKIE["SavedUserInfo"]) && $_COOKIE["SavedUserInfo"] != "999999999")
-	{
-		$inputWord = $_POST['searchWord'];
-		$sInsertUser = $_COOKIE["SavedUserInfo"];
-
-		mysql_query("INSERT INTO zc_accounts_keywords (`ID`, `ACCOUNT_NUMBER`, `KEYWORD`)
-					VALUE(NULL, '$sInsertUser', '$inputWord')") or die(mysql_error());
-		echo "Input is added successfully";
-	}
-
-	if (!isset($_POST['submitAccount']))
-	{
-		//echo "Please input a key word 2";
-	}
-	// if (!empty($userName) && !empty($emailLocal) && !empty($passWord))
-	else
-	{
-		$i_countUsers = mysql_query("SELECT COUNT(ID) FROM zc_accounts") or die(mysql_error());
-		$i_countUsers = $i_countUsers + 1;
-
-		$userName = $_POST['username'];
-		$emailLocal = $_POST['email'];
-		$passWord = $_POST['password'];
-		date_default_timezone_set('America/Los_Angeles');
-		//$timezone = date_default_timezone_get();
-		//$timezone = date("Y-m-d");
-		mysql_query("INSERT INTO zc_accounts (`ID`, `ACCOUNT_NUMBER`, `USERNAME`, `EMAIL`, `PASSWORD`, `CREATED_DATE`)
-										VALUE(NULL, '$i_countUsers', '$userName', '$emailLocal', '$passWord', '$timezone')") or die(mysql_error());
-		echo "Account is added successfully" . $timezone;
-	}
-
-	// If log out button is clicked, do LogOut() function.
-	if (isset($_POST['submitLogOut']))
-	{
-		LogOut();
-		/*setcookie("SavedUsername", "doesnotexist", 1);
-		setcookie("SavedPassword", "doesnotexist", 1);
-		header("Location: clickSeeNews.php");
-		exit();*/
-	}
-
-	function IsEmpty($input)
-	{
-		$sInputTemp = $input;
-		$sInputTemp = trim($sInputTemp);
-
-		if ($sInputTemp == '')
-		{
-			return true;
-		}
-
-		return false;
-	}
-
-	function LogIn($Username, $Password)
-	{
-		$result = mysql_query("SELECT DISTINCT ACCOUNT_NUMBER FROM zc_accounts WHERE USERNAME='$Username' AND PASSWORD='$Password'") or die(mysql_error());
-
-		while ($displayInput = mysql_fetch_array($result))
-		{
-			// 86400 = 1 day
-			$iExpireTime = 86400 * 30;
-			setcookie("SavedUserInfo", $displayInput['ACCOUNT_NUMBER'], time() + $iExpireTime);
-			return true;
-		}
-
-		return false;
-	}
-	
-	function LogOut()
-	{
-		// 86400 = 1 day
-		$iExpireTime = 86400 * 30;
-		// Change the cookie values when user logs out.
-		setcookie("SavedUserInfo", "999999999", time() + $iExpireTime);
-		// Refresh the page so the change can be made.
-		header("Location: clickSeeNews.php"); /* Redirect browser */
-		exit();
-	}
-
-	function GetUserName($inputName)
-	{
-		$result = mysql_query("SELECT DISTINCT USERNAME FROM zc_accounts WHERE ACCOUNT_NUMBER=$inputName") or die(mysql_error());
-
-		while ($displayInput = mysql_fetch_array($result))
-		{
-			return $displayInput['USERNAME'];
-		}
 	}
 
 	// This function returns a string between 2 specified values.
