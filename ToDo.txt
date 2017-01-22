@@ -1,6 +1,24 @@
 Add Log-In/account capability.
+	Add usercheck before registering
+	Add register module
+	Add double password fill in
 Top 10 articles/stories from users.
 Handle DDOS or hugging to death.
 Add more subsriptions from other websites.
 
 Publish project to website.
+
+http://localhost:4040/project_news/clickseenews.php
+http://localhost:4040/phpmyadmin/sql.php?db=mysql&table=zc_keywords&token=52e4d9f76c27b3881275d27cd6d38359&pos=0
+
+http://localhost:4040/project_news/clickseenews2.php
+
+2017-01-21
+1. Added URL from google search to Page.
+2. Now need to add Title from google search to Page.
+
+><a href=
+
+// ZC keep. might be useful later on.
+//echo readfile($displayInput['link']); // similar to file_get_contents()
+//echo stream_get_contents(fopen($displayInput['link'], "rb")); // similar to file_get_contents()
