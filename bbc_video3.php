@@ -31,7 +31,7 @@
 
 				if ($counterFromUser > 1)
 				{
-					$searchUserInputURL = $searchUserInputURL . '+';
+					$searchUserInputURL = $searchUserInputURL . '%20';
 				}
 
 				$searchUserInputURL = $searchUserInputURL . $eachWord;
@@ -48,19 +48,21 @@
 			// Get data from the website in string
 			$data = file_get_contents($searchUserInputURL);
 			// Convert html tags to string
-			//print_r($data);
+			print_r($data);
 			$data = htmlspecialchars($data, ENT_QUOTES, 'iso8859-1');
+			//$data = substr($data, 60000);
+			//print_r($data);
 			// Remove anything before this keyword
 			$sFirstRemoval = 'About';
 			$shortData = strstr($data, $sFirstRemoval);
+			print_r($shortData);
 			// Keep count of news
 			$iCount = 0;
 			// For URL
 			$sValue = "KEEPTRACK";
 			// For description
 			$sValueDesc = "KEEPDESC";
-			$iNumberOfNews = 18;
-			$iCountURLs = 0;
+			$iNumberOfNews = 10;
 			
 			// Only save the first 8 results
 			while ($iCount < $iNumberOfNews)
@@ -73,7 +75,6 @@
 				
 				// Get the URL
 				$sGetURL = get_string_between($shortData, $my_http, '&amp');
-				//print_r($sGetURL);
 				// Get the full format of a website URL
 				$fullURL = $my_http . $sGetURL;
 				// The first use of needle
@@ -107,7 +108,6 @@
 				
 				// Remove any text before the first detection of the URL
 				$shortData = strstr($shortData, $replace);
-
 				// Search through the text and grab the substring between "> and </a>.
 				// The title is between							">	and		</a>		in my case.
 				$getTitle = get_string_between($shortData, '&quot;&gt;', '&lt;/a&gt;');
@@ -115,15 +115,37 @@
 				$getTitle = htmlspecialchars_decode($getTitle);
 				// Strip HTML tags from the string
 				$getTitle = strip_tags($getTitle);
+				// Get date of the publication
+				//											st">				<b>
+				$getDate = get_string_between($shortData, 'st&quot;&gt;', '&lt;b&gt;');
+
+				// Flag for finding date
+				$bFindDate = false;
+				// Search keyword
+				$needle = $getDate;
+				// Replace the used description with a unique value
+				$sValueUniqueDesc = $sValueDesc . (string)$iCount;
+				$replace = $sValueUniqueDesc;
+				// Check if the substring is in string
+				//$bFindDate = strpos($shortData, $needle);
+
+				// If true, Find and replace the specified URL with the substring
+				if ($bFindDate != false)
+				{
+					$shortData = substr_replace($shortData, $replace, $bFindDate, strlen($needle));
+				}
+
+				// Remove any text before the first detection of the substring
+				$shortData = strstr($shortData, $replace);
 
 				// Get description of the news
-				//											st">			&nbsp
-				$getDesc = get_string_between($shortData, 'st&quot;&gt;', '&amp;nbsp');
+				//											</b>		&nbsp
+				$getDesc = get_string_between($shortData, '&lt;/b&gt;', '&amp;nbsp');
 				// Save the saved description in case
 				$tempDesc = $getDesc;
 
-				// If the description is more than 500 characters, it is not the right description
-				if (strlen($getDesc) > 500)
+				// If the description is more than 300 characters, it is not the right description
+				if (strlen($getDesc) > 400)
 				{
 					// Keep any thing before the needle
 					//								</span>
@@ -142,26 +164,6 @@
 				{
 					$getDesc = strstr($getDesc, $needle, true);
 				}
-
-				$bFindDesc = false;
-				$needle =  $tempDesc;
-				// Replace the used description with a unique value
-				$sValueUniqueDesc = $sValueDesc . (string)$iCount;
-				$replace = $sValueUniqueDesc;
-				// Check if the substring is in string
-				if (strlen($needle) > 0)
-				{
-					$bFindDesc = strpos($shortData, $needle);
-				}
-
-				// If true, Find and replace the specified URL with the substring
-				if ($bFindDesc != false)
-				{
-					$shortData = substr_replace($shortData, $replace, $bFindDesc, strlen($needle));
-				}
-
-				// Remove any text before the first detection of the substring
-				$shortData = strstr($shortData, $replace);
 			
 				// If the URL is less than 150 characters and checked to be valid, put it inside the array for outputting
 				if (strlen($sGetURL) < 150 && $bTagInURL == false)
@@ -176,12 +178,14 @@
 							'title'			=> (string)$getTitle,
 							'description'	=> (string)$getDesc,
 							'link'			=> (string)$fullURL,
+							'date'			=> (string)$getDate,
 							);
 					
 					// Put the article inside the array
 					$totalArray = array_merge($totalArray, $articles);
 				}
 
+				// Keep track of loop counts
 				$iCount = $iCount + 1;
 			}
 		}

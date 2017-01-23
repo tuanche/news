@@ -145,9 +145,7 @@ include('include/connection.php');
 					// Edit pictures/thumbnails so that they are limited to 100 x 100 pixels.
 					?>
 					<h3><a href="<?php echo $article['link'] ?>"><?php echo $article['title']; ?></a></h3>
-					<img width ="100px" height="100px" src="<?php echo $article['image']['url']; ?>" alt="thumbnail" />
 					<p>
-						<?php echo $article['date']; ?> <br>
 						<?php echo $article['description']; ?>
 
 					</p>
