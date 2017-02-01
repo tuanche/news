@@ -23,7 +23,7 @@ include('include/connection.php');
 			padding:5px;
 			overflow:auto;
 			border-style:groove;
-			margin-top:100px;
+			margin-top:90px;
 		}
 		#contents
 		{
@@ -51,7 +51,7 @@ include('include/connection.php');
 		#search
 		{
 			position:fixed;
-			margin-top:60px;
+			margin-top:20px;
 		}
 		</style>
 
@@ -69,8 +69,27 @@ include('include/connection.php');
 					<label for="LoggedInUsername"> Welcome, <?php echo GetUserName($_COOKIE["SavedUserInfo"]); ?>!</label> <br>
 					<label>Have a great time. </label>
 				</form>
-				<form action="<?=$_SERVER['PHP_SELF'];?>" method="post">
+				<form action="<?=$_SERVER['PHP_SELF'];?>" method="post"> 
 					<input type="submit" name="submitLogOut" value="Log Out">
+				</form>
+			<?php
+			}
+			else if (isset($_POST['submitRegister']))
+			{
+				$txtRandomNumber1 = rand(1, 30);
+				$txtRandomNumber2 = rand(1, 30);
+			?>
+				<form action="<?=$_SERVER['PHP_SELF'];?>" method="post">
+					<input type="text" name="txtUsername" placeholder="Username" value="<?=isset($_POST['txtUsername']) ? htmlspecialchars($_POST['txtUsername']) : '' ?>" /><br>
+					<input type="text" name="txtPassword" placeholder="Password" value="<?=isset($_POST['txtPassword']) ? htmlspecialchars($_POST['txtPassword']) : '' ?>" />&nbsp;
+					<input type="text" name="txtPassword2nd" placeholder="Password Again" value="<?=isset($_POST['txtPassword2nd']) ? htmlspecialchars($_POST['txtPassword2nd']) : '' ?>" /><br>
+					<input type="text" name="txtRandomNumber1" value="<?=rand(1, 30) ?>" style="width:30px;" />&nbsp; + &nbsp;
+					<input type="text" name="txtRandomNumber2" value="<?=rand(1, 30) ?>" style="width:30px;" />&nbsp; = &nbsp;
+					<input type="text" name="txtRandomAnswer" placeholder="?" value="" style="width:30px;" />&nbsp; ? &nbsp;<br>
+					<input type="submit" name="submitLogIn" value="Log In">
+					&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+					&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+					<input type="submit" name="submitRegisterNow" value="Register Now">
 				</form>
 			<?php
 			}
@@ -81,9 +100,12 @@ include('include/connection.php');
 					<input type="text" name="txtUsername" placeholder="Username" value="<?=isset($_POST['txtUsername']) ? htmlspecialchars($_POST['txtUsername']) : '' ?>" /><br>
 					<input type="text" name="txtPassword" placeholder="Password" value="<?=isset($_POST['txtPassword']) ? htmlspecialchars($_POST['txtPassword']) : '' ?>" /><br>
 					<input type="submit" name="submitLogIn" value="Log In">
+					&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+					<input type="submit" name="submitRegister" value="Register">
 				</form>
 			<?php
 			}
+			
 			?>
 		</div>
 
@@ -93,10 +115,6 @@ include('include/connection.php');
 				<input type="text" name="searchWord" /><br>
 				<input type="submit" name="submit" value="Search">
 			</form>
-		</div>
-
-		<div>
-			<a href="news.php"> Click to see news </a>
 		</div>
 
 		<div id="keywords">
@@ -154,38 +172,49 @@ include('include/connection.php');
 		</div>
 
 		<div id="contents">
+			<h3>Recent News:</h3>
+			<?php
+			//this function will retrieve all texts from the chosen website and display them
+			foreach (fetch_word() as $article)
+			{
+				// Edit pictures/thumbnails so that they are limited to 100 x 100 pixels.
+				?>
+				<h3><a href="<?php echo $article['link'] ?>"><?php echo $article['title']; ?></a></h3>
 				<?php
-				//this function will retrieve all texts from the chosen website and display them
-				foreach (fetch_word() as $article)
+				// Only display thumbnails for articles from BBC
+				if ($article['display'] == 1)
 				{
-					// Edit pictures/thumbnails so that they are limited to 100 x 100 pixels.
-					?>
-					<h3><a href="<?php echo $article['link'] ?>"><?php echo $article['title']; ?></a></h3>
+				?>
 					<img width ="100px" height="100px" src="<?php echo $article['image']['url']; ?>" alt="thumbnail" />
-					<p>
-						<?php echo $article['description']; ?>
-
-					</p>
-					<?php
+				<?php
 				}
 				?>
+				<p>
+					<?php echo $article['description']; ?>
+
+				</p>
+				<?php
+			}
+			?>
 		</div>
 
 		<div id="contentsSearch">
-				<?php
-				//this function will retrieve all texts from the chosen website and display them
-				foreach (fetch_wordSearch() as $article)
-				{
-					// Edit pictures/thumbnails so that they are limited to 100 x 100 pixels.
-					?>
-					<h3><a href="<?php echo $article['link'] ?>"><?php echo $article['title']; ?></a></h3>
-					<p>
-						<?php echo $article['description']; ?>
-
-					</p>
-					<?php
-				}
+			<h3>Search Results:</h3>
+			<?php
+			//this function will retrieve all texts from the chosen website and display them
+			foreach (fetch_wordSearch() as $article)
+			{
+				// Edit pictures/thumbnails so that they are limited to 100 x 100 pixels.
 				?>
+				<h3><a href="<?php echo $article['link'] ?>"><?php echo $article['title']; ?></a></h3>
+				<p>
+					<h5><?php if (strlen($article['title']) > 1) {echo $article['website']; } ?> </h5>
+					<?php echo $article['description']; ?>
+
+				</p>
+				<?php
+			}
+			?>
 		</div>
 	</body>
 </html>

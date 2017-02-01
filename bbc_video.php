@@ -39,6 +39,7 @@
 			foreach ($data->channel->item as $item)
 			{
 				$media = $item->children('http://search.yahoo.com/mrss/');
+				//print_r($data->channel->item);
 				$image = array();
 
 				// If the articles are from BBC, show images
@@ -110,6 +111,7 @@
 						'link'			=> (string)$item->link,
 						'date'			=> (string)$item->pubDate,
 						'image'			=> $image,
+						'display'		=> $displayInput['NUMBER'],
 						);
 					}
 				}
@@ -124,6 +126,7 @@
 					'link'			=> (string)$item->link,
 					'date'			=> (string)$item->pubDate,
 					'image'			=> $image,
+					'display'		=> $displayInput['NUMBER'],
 					);
 				}
 			}
@@ -131,6 +134,9 @@
 			$totalArray = array_merge($totalArray, $articles);
 		}
 
+		$i_countUsers = mysql_query("SELECT MAX(ACCOUNT_NUMBER) FROM zc_accounts") or die(mysql_error());
+		
+		
 		return $totalArray; //print out all objects of "articles"
 	}
 
@@ -148,25 +154,84 @@
 		echo "Input is added successfully";
 	}
 
-	if (!isset($_POST['submitAccount']))
+	if (!isset($_POST['submitRegisterNow']))
 	{
 		//echo "Please input a key word 2";
 	}
 	// if (!empty($userName) && !empty($emailLocal) && !empty($passWord))
 	else
 	{
-		$i_countUsers = mysql_query("SELECT COUNT(ID) FROM zc_accounts") or die(mysql_error());
-		$i_countUsers = $i_countUsers + 1;
+		$userName = $_POST['txtUsername'];
+		$passWord = $_POST['txtPassword'];
+		$sPassWord2nd = $_POST['txtPassword2nd'];
+		$txtRandomNumber1 = $_POST['txtRandomNumber1'];
+		$txtRandomNumber2 = $_POST['txtRandomNumber2'];
+		$txtRandomAnswer = $_POST['txtRandomAnswer'];
+		$sUserAnswer = $txtRandomNumber1 + $txtRandomNumber2;
+		$result = mysql_query("SELECT MAX(ACCOUNT_NUMBER) FROM zc_accounts") or die(mysql_error());
+		while ($displayInput = mysql_fetch_array($result))
+		{
+			$iMaxNumber = $displayInput['MAX(ACCOUNT_NUMBER)'];
+		}
 
-		$userName = $_POST['username'];
-		$emailLocal = $_POST['email'];
-		$passWord = $_POST['password'];
-		date_default_timezone_set('America/Los_Angeles');
-		//$timezone = date_default_timezone_get();
-		//$timezone = date("Y-m-d");
-		mysql_query("INSERT INTO zc_accounts (`ID`, `ACCOUNT_NUMBER`, `USERNAME`, `EMAIL`, `PASSWORD`, `CREATED_DATE`)
-										VALUE(NULL, '$i_countUsers', '$userName', '$emailLocal', '$passWord', '$timezone')") or die(mysql_error());
-		echo "Account is added successfully" . $timezone;
+		if ($iMaxNumber < 90000000)
+		{
+			$iMaxNumber = 90000000;
+		}
+
+		$iMaxNumber = $iMaxNumber + rand(1, 5);
+		$bUniqueUsername = true;
+
+		$result = mysql_query("SELECT DISTINCT USERNAME FROM zc_accounts") or die(mysql_error());
+		while ($displayInput = mysql_fetch_array($result))
+		{
+			if ((string)$userName == (string)$displayInput['USERNAME'])
+			{
+				$bUniqueUsername = false;
+				break;
+			}
+		}
+
+		// Check if passwords match
+		$bPasswordMatch = false;
+		if ($passWord == $sPassWord2nd && strlen($passWord) > 1 && strlen($sPassWord2nd) > 1)
+		{
+			$bPasswordMatch = true;
+		}
+
+		// Check if passwords match
+		$bRandomMatch = false;
+		if ($sUserAnswer == $txtRandomAnswer)
+		{
+			$bRandomMatch = true;
+		}
+
+		// ZC: I stopped working here. Goal is to create a unique account number for each new user.
+		// Check before letting user register successfully.
+		if ($bUniqueUsername && $bPasswordMatch && $bRandomMatch)
+		{
+			//$userName = $_POST['txtUsername'];
+			$emailLocal = $_POST['txtUsername'];
+			
+			date_default_timezone_set('America/Los_Angeles');
+			//$timezone = date_default_timezone_get();
+			//$timezone = date("Y-m-d");
+			mysql_query("INSERT INTO zc_accounts (`ID`, `ACCOUNT_NUMBER`, `USERNAME`, `EMAIL`, `PASSWORD`, `CREATED_DATE`)
+											VALUE(NULL, '$iMaxNumber', '$userName', '$emailLocal', '$passWord', '$timezone')") or die(mysql_error());
+			echo "Account is added successfully. Plesae Log In.";
+		}
+		else if ($bUniqueUsername == false)
+		{
+			echo "The username is already taken! Please enter another cute one.";
+		}
+		else if ($bPasswordMatch == false)
+		{
+			echo "The passwords did not match. Please try again.";
+		}
+		else if ($bRandomMatch == false)
+		{
+			echo "The answer for bot checking did not match. Please try again.";
+		}
 	}
 
 	// If log out button is clicked, do LogOut() function.

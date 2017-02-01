@@ -1,7 +1,5 @@
 Add Log-In/account capability.
 	Add usercheck before registering
-	Add register module
-	Add double password fill in
 Top 10 articles/stories from users.
 Handle DDOS or hugging to death.
 Add more subsriptions from other websites.

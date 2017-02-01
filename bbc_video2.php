@@ -13,16 +13,19 @@
 
 		// Initialization
 		$totalArray = array();
-		$my_http = 'http';
 		$searchUserInputURL = ' ';
 
+		// If user submitted a search, do this
 		if (isset($_POST['searchWord']))
 		{
+			// Get user input
 			$sFromUser = $_POST['searchWord'];
+			// Make the whole string lowercase
 			$sFromUser = Strtolower($sFromUser);
+			// Split the string into separate word
 			$sFromUser_split = Preg_split('/\W/', $sFromUser, 0, PREG_SPLIT_NO_EMPTY);
-			$bUserInputted = true;
 
+			// Do this to search user input via Google News
 			$searchUserInputURL = 'https://www.google.com/search?q=';
 
 			foreach ($sFromUser_split as $eachWord)
@@ -36,50 +39,79 @@
 
 				$searchUserInputURL = $searchUserInputURL . $eachWord;
 			}
+
+			// Form the proper URL
+			$searchUserInputURL = $searchUserInputURL . '&tbm=nws';
 		}
 
-		//print_r($counterFromUser);
-		//print_r($searchUserInputURL);
+		// Only perform if user submitted a proper input
 		if ($counterFromUser > 0)
 		{
+			// **************************************************
 			// Read news from google search
 
-			//$data = file_get_contents($displayInput['link']); // ZC good. test
 			// Get data from the website in string
-			$data = file_get_contents($searchUserInputURL);
-			// Convert html tags to string
+			$shortData = file_get_contents($searchUserInputURL);
 			//print_r($data);
-			$data = htmlspecialchars($data, ENT_QUOTES, 'iso8859-1');
+			// Convert html tags to string
+			$shortData = $shortData;
+			$shortData = htmlspecialchars($shortData, ENT_QUOTES, 'iso8859-1');
 			// Remove anything before this keyword
 			$sFirstRemoval = 'About';
-			$shortData = strstr($data, $sFirstRemoval);
+			$shortData = strstr($shortData, $sFirstRemoval);
+			//print_r($shortData);
+
+
+			// **************************************************
+			// Do some initialization
+
 			// Keep count of news
 			$iCount = 0;
 			// For URL
 			$sValue = "KEEPTRACK";
 			// For description
 			$sValueDesc = "KEEPDESC";
+			// For title
+			$sValueTitle = "KEEPTITLE";
 			$iNumberOfNews = 18;
 			$iCountURLs = 0;
 			
-			// Only save the first 8 results
+
+			// **************************************************
+			// Get data from website
+
+			// Only save the first 18 results
 			while ($iCount < $iNumberOfNews)
 			{
-				//$data = simplexml_load_file("http://rss.cnn.com/rss/cnn_topstories.rss"); //load texts in a simple format
-				//$data = @simplexml_load_string($data); //load texts in a simple format
-				//echo $data; //output texts are unorganized
-				//$shortData = strstr($data, 'About');
-				//print_r();
-				
 				// Get the URL
-				$sGetURL = get_string_between($shortData, $my_http, '&amp');
-				//print_r($sGetURL);
+				$sMy_http = 'q=http';
+				$sGetURL = get_string_between($shortData, $sMy_http, '&amp');
+				
 				// Get the full format of a website URL
-				$fullURL = $my_http . $sGetURL;
-				// The first use of needle
+				$fullURL = 'http' . $sGetURL;
+
+
+				// **************************************************
+				// The first use of needle for URL
 				$needle = $fullURL;
+				$bFindURL = false;
+				// Check if the substring is in string
+				$bFindURL = strpos($shortData, $needle);
+
+				// If true, Find and replace the specified URL with the substring
+				if ($bFindURL != false)
+				{
+					// Replace the used URL with a unique value
+					$replace = $sValue . (string)$iCount;
+					// Remove any text before the first detection of the URL
+					$shortData = remove_string_front($shortData, $replace, $bFindURL, $needle);
+				}
+
+				// **************************************************
+				// Check whether or not the URL is valid
 				// Use to check whether the URL has HTML tag in it
 				$bTagInURL = false;
+				$sGetWebsiteURL = '(' . $fullURL . ')';
 				$tempURL = $fullURL;
 				$tempURL = htmlspecialchars_decode($tempURL);
 
@@ -89,94 +121,128 @@
 					// contains HTML
 					$bTagInURL = true;
 				}
-
-				// Replace the used URL with a unique value
-				$sValueUnique = $sValue . (string)$iCount;
-
-				$replace = $sValueUnique;
-
-				$bFindURL = false;
-				// Check if the substring is in string
-				$bFindURL = strpos($shortData, $needle);
-
-				// If true, Find and replace the specified URL with the substring
-				if ($bFindURL != false)
-				{
-					$shortData = substr_replace($shortData, $replace, $bFindURL, strlen($needle));
-				}
 				
-				// Remove any text before the first detection of the URL
-				$shortData = strstr($shortData, $replace);
-
-				// Search through the text and grab the substring between "> and </a>.
-				// The title is between							">	and		</a>		in my case.
-				$getTitle = get_string_between($shortData, '&quot;&gt;', '&lt;/a&gt;');
-				// Turn the string back to the version with HTML tag
-				$getTitle = htmlspecialchars_decode($getTitle);
-				// Strip HTML tags from the string
-				$getTitle = strip_tags($getTitle);
-
-				// Get description of the news
-				//											st">			&nbsp
-				$getDesc = get_string_between($shortData, 'st&quot;&gt;', '&amp;nbsp');
-				// Save the saved description in case
-				$tempDesc = $getDesc;
-
-				// If the description is more than 500 characters, it is not the right description
-				if (strlen($getDesc) > 500)
-				{
-					// Keep any thing before the needle
-					//								</span>
-					$tempDesc = strstr($tempDesc, '&lt;/span&gt;', true);
-					$getDesc = $tempDesc;
-				}
-
-				// Turn the string back to the version with HTML tag
-				$getDesc = htmlspecialchars_decode($getDesc);
-				// Strip HTML tags from the string
-				$getDesc = strip_tags($getDesc);
-
-				// If the string has HTML tag, </>, keep only the part before it.
-				$needle = '&lt;/&gt;';
-				if (strpos($getDesc, $needle))
-				{
-					$getDesc = strstr($getDesc, $needle, true);
-				}
-
-				$bFindDesc = false;
-				$needle =  $tempDesc;
-				// Replace the used description with a unique value
-				$sValueUniqueDesc = $sValueDesc . (string)$iCount;
-				$replace = $sValueUniqueDesc;
-				// Check if the substring is in string
-				if (strlen($needle) > 0)
-				{
-					$bFindDesc = strpos($shortData, $needle);
-				}
-
-				// If true, Find and replace the specified URL with the substring
-				if ($bFindDesc != false)
-				{
-					$shortData = substr_replace($shortData, $replace, $bFindDesc, strlen($needle));
-				}
-
-				// Remove any text before the first detection of the substring
-				$shortData = strstr($shortData, $replace);
-			
 				// If the URL is less than 150 characters and checked to be valid, put it inside the array for outputting
-				if (strlen($sGetURL) < 150 && $bTagInURL == false)
+				if (strlen($sGetURL) < 200 && $bTagInURL == false)
 				{
+
+					// **************************************************
+					// Get the 2nd URL
+					$sGetURL2nd = get_string_between($shortData, $sMy_http, '&amp');
+					
+					// Get the full format of a website URL
+					$fullURL2nd = $sMy_http . $sGetURL2nd;
+
+					// Get the string between 2 URLs to check for description
+					$sGetDescInBetween = get_string_between($shortData, $replace, $sGetURL2nd);
+
+
+					// **************************************************
+					// Get the title
+					$getTitle = '';
+					// Keep looking for the title
+					while (strlen($getTitle) < 2)
+					{
+						// Search through the text and grab the substring between "> and </a>.
+						// The title is between							">	and		</a>		in my case.
+						$getTitle = get_string_between($shortData, '&quot;&gt;', '&lt;/a&gt;');
+
+						// The first use of needle for URL
+						$needle = 'cite&gt;';
+						
+						$bFindTitle = false;
+						// Check if the word "cite" is in this string. if yes, then it is a false title/alarm
+						$bFindTitle = strpos($getTitle, $needle);
+
+						// If true, Find and replace the false title with something else
+						if ($bFindTitle == true)
+						{
+							// Replace with a unique value
+							$replace = $sValueTitle . (string)$iCount;
+							// Remove any text before the first detection of the title
+							$shortData = remove_string_front($shortData, $replace, $bFindTitle, $getTitle);
+							// Reset the title to search again
+							$getTitle = '';
+						}
+					}
+					// Turn the string back to the version with HTML tag
+					$getTitle = htmlspecialchars_decode($getTitle);
+					// Strip HTML tags from the string
+					$getTitle = strip_tags($getTitle);
+
+
+					// **************************************************
+					// Get description of the news
+					//													st">			&nbsp
+					$getDesc = get_string_between($sGetDescInBetween, 'f&quot;&gt;', '&amp;nbsp');
+
+					// Got a string, but check if it is valid
+					if (strlen($getDesc) > 20)
+					{
+						// Save the saved description in case
+						$tempDesc = $getDesc;
+
+						// If the description is more than 500 characters, it is not the right description
+						if (strlen($getDesc) > 500)
+						{
+							// Keep any thing before the needle
+							//								</span>
+							$tempDesc = strstr($tempDesc, '&lt;/span&gt;', true);
+							$getDesc = $tempDesc;
+						}
+
+						// Turn the string back to the version with HTML tag
+						$getDesc = htmlspecialchars_decode($getDesc);
+						// Strip HTML tags from the string
+						$getDesc = strip_tags($getDesc);
+
+						// If the string has HTML tag, </>, keep only the part before it.
+						$needle = '&lt;/&gt;';
+						if (strpos($getDesc, $needle))
+						{
+							$getDesc = strstr($getDesc, $needle, true);
+						}
+
+						$bFindDesc = false;
+						$needle =  $tempDesc;
+						// Check if the substring is in string
+						if (strlen($needle) > 0)
+						{
+							$bFindDesc = strpos($shortData, $needle);
+						}
+
+						// If true, Find and replace the specified URL with the substring
+						if ($bFindDesc != false)
+						{
+							// Replace the used description with a unique value
+							$replace = $sValueDesc . (string)$iCount;
+							// Remove any text before the first detection of the description
+							$shortData = remove_string_front($shortData, $replace, $bFindDesc, $needle);
+						}
+					}
+					// There is not description for this article
+					else
+					{
+						$getDesc = '';
+					}
+
+					// **************************************************
+					// Input the proper article into the array for publishing
 					// initialize the array
 					$articles = array(); //initialize variable articles as an array
 
 					// Put data inside the array in order
-					$articles[] = array(
+					if (strlen($getTitle) > 1)
+					{
+						$articles[] = array(
 							//point to string
 							//key				value
 							'title'			=> (string)$getTitle,
 							'description'	=> (string)$getDesc,
 							'link'			=> (string)$fullURL,
+							'website'		=> (string)$sGetWebsiteURL,
 							);
+					}
 					
 					// Put the article inside the array
 					$totalArray = array_merge($totalArray, $articles);
@@ -184,6 +250,26 @@
 
 				$iCount = $iCount + 1;
 			}
+		}
+		else
+		{
+			// **************************************************
+			// Input the proper article into the array for publishing
+			// initialize the array
+			$articles = array(); //initialize variable articles as an array
+
+			// Put data inside the array in order
+				$articles[] = array(
+					//point to string
+					//key				value
+					'title'			=> '',
+					'description'	=> 'Your search results will be displayed here.',
+					'link'			=> '',
+					'website'		=> '',
+					);
+			
+			// Put the article inside the array
+			$totalArray = array_merge($totalArray, $articles);
 		}
 
 		return $totalArray; //print out all objects of "articles"
@@ -198,5 +284,15 @@
 		$ini += strlen($start);
 		$len = strpos($string, $end, $ini) - $ini;
 		return substr($string, $ini, $len);
+	}
+
+	// This function performs removing part of a string
+	function remove_string_front($shortData, $replace, $bFindString,  $sOGString)
+	{
+		// Perform the string removal process
+		$shortData = substr_replace($shortData, $replace, $bFindString, strlen($sOGString));
+		// Remove any text before the first detection of the URL
+		$shortData = strstr($shortData, $replace);
+		return $shortData;
 	}
 ?>
